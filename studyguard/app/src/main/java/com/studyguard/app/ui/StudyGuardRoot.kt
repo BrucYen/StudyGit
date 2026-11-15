@@ -113,10 +113,12 @@ private fun MainScaffold(
     var resumeTick by remember { mutableStateOf(0) }
     var updateInfo by remember { mutableStateOf<VersionInfo?>(null) }
 
-    // 启动时检查更新
+    // 启动时检查更新 + 拉取最新题库
     LaunchedEffect(Unit) {
         val info = UpdateChecker.checkUpdate(context)
         if (info != null) updateInfo = info
+        // 后台拉取最新题库，失败不影响使用（回退到本地缓存/内置题库）
+        AppGraph.questionBank.fetchFromServer()
     }
 
     DisposableEffect(lifecycleOwner) {
