@@ -56,12 +56,23 @@ function adminAuth(req, res, next) {
   next()
 }
 
-// 上传 APK（raw body）
+// 上传 APK（raw body）—— 文件名自动带版本号
 app.post('/api/admin/upload/apk', adminAuth, express.raw({ type: 'application/octet-stream', limit: '100mb' }), (req, res) => {
   try {
-    const apkPath = path.join(APK_DIR, 'studyguard-latest.apk')
+    const version = getLatestVersion()
+    const fileName = `StudyGuard-v${version.versionName}.apk`
+    const apkPath = path.join(APK_DIR, fileName)
     fs.writeFileSync(apkPath, req.body)
-    res.json({ ok: true, size: req.body.length, message: `APK 已更新 (${(req.body.length/1024/1024).toFixed(2)} MB)` })
+
+    // 更新 downloadUrl 指向带版本号的文件
+    version.downloadUrl = `https://wytek.cloud/apk/${fileName}`
+    fs.writeFileSync(path.join(DATA_DIR, 'version.json'), JSON.stringify(version, null, 2))
+
+    // 删除旧的 studyguard-latest.apk（如果存在）
+    const oldPath = path.join(APK_DIR, 'studyguard-latest.apk')
+    if (fs.existsSync(oldPath)) fs.unlinkSync(oldPath)
+
+    res.json({ ok: true, size: req.body.length, fileName, message: `APK 已更新 (${(req.body.length/1024/1024).toFixed(2)} MB)` })
   } catch (e) {
     res.status(500).json({ error: e.message })
   }
@@ -82,11 +93,24 @@ app.post('/api/admin/upload/questions', adminAuth, express.raw({ type: 'applicat
   }
 })
 
-// 更新版本信息（JSON body）
+// 更新版本信息（JSON body）—— 同步重命名 APK 文件
 app.post('/api/admin/version', adminAuth, (req, res) => {
   try {
     const current = getLatestVersion()
     const updated = { ...current, ...req.body }
+
+    // 如果版本号变了，重命名 APK 文件
+    if (updated.versionName && updated.versionName !== current.versionName) {
+      const oldName = `StudyGuard-v${current.versionName}.apk`
+      const newName = `StudyGuard-v${updated.versionName}.apk`
+      const oldPath = path.join(APK_DIR, oldName)
+      const newPath = path.join(APK_DIR, newName)
+      if (fs.existsSync(oldPath) && oldName !== newName) {
+        fs.renameSync(oldPath, newPath)
+        updated.downloadUrl = `https://wytek.cloud/apk/${newName}`
+      }
+    }
+
     fs.writeFileSync(path.join(DATA_DIR, 'version.json'), JSON.stringify(updated, null, 2))
     res.json({ ok: true, version: updated })
   } catch (e) {

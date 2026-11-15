@@ -1,7 +1,7 @@
 {
-  "versionCode": 3,
-  "versionName": "1.2.0",
-  "downloadUrl": "https://wytek.cloud/apk/studyguard-latest.apk",
-  "releaseNotes": "云端同步+错题本",
+  "versionCode": 5,
+  "versionName": "1.4.0",
+  "downloadUrl": "https://wytek.cloud/apk/StudyGuard-v1.4.0.apk",
+  "releaseNotes": "家长页检查更新",
   "forceUpdate": false
 }
