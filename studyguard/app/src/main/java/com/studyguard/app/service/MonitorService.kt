@@ -124,8 +124,9 @@ class MonitorService : Service() {
                 continuousMinutes = continuousMinutes
             )
         } else if (continuousMinutes >= settings.sessionLimitMinutes) {
+            val wrongIds = AppGraph.repository.getWrongQuestionIds()
             val questions = AppGraph.questionBank.pickExamQuestions(
-                profile.grade, settings.subjects, settings.quizQuestionCount
+                profile.grade, settings.subjects, settings.quizQuestionCount, wrongIds
             )
             if (questions.isEmpty()) {
                 cooldownUntil = now + 60_000L

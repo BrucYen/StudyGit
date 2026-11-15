@@ -94,28 +94,28 @@ class QuestionBank(context: Context) {
 
     /**
      * 从多个科目中均衡抽题，用于跨科目弹窗考试。
+     * 如果传入 wrongQuestionIds，优先从错题中抽取（占比约一半）。
      */
-    fun pickExamQuestions(grade: Int, subjects: Set<String>, count: Int): List<QuizQuestion> {
+    fun pickExamQuestions(
+        grade: Int,
+        subjects: Set<String>,
+        count: Int,
+        wrongQuestionIds: Set<String> = emptySet()
+    ): List<QuizQuestion> {
         val pool = forGrade(grade).filter { it.subject in subjects }
         if (pool.isEmpty()) return emptyList()
-        val bySubject = pool.groupBy { it.subject }.mapValues { it.value.shuffled() }
-        val subjectOrder = bySubject.keys.shuffled()
-        val picked = mutableListOf<QuizQuestion>()
-        var round = 0
-        while (picked.size < count) {
-            var added = false
-            for (subject in subjectOrder) {
-                val list = bySubject[subject] ?: continue
-                if (round < list.size) {
-                    picked += list[round]
-                    added = true
-                    if (picked.size >= count) break
-                }
-            }
-            if (!added) break
-            round++
-        }
-        return picked.ifEmpty { pool.shuffled().take(count) }
+
+        // 优先抽错题
+        val wrongQuestions = pool.filter { it.id in wrongQuestionIds }.shuffled()
+        val wrongCount = minOf(wrongQuestions.size, (count + 1) / 2)
+        val pickedWrong = wrongQuestions.take(wrongCount)
+
+        // 剩余从普通题库抽
+        val wrongIds = pickedWrong.map { it.id }.toSet()
+        val remaining = pool.filter { it.id !in wrongIds }.shuffled()
+        val pickedNormal = remaining.take(count - pickedWrong.size)
+
+        return (pickedWrong + pickedNormal).shuffled().ifEmpty { pool.shuffled().take(count) }
     }
 
     fun randomQuestions(grade: Int, subject: String, count: Int): List<QuizQuestion> {

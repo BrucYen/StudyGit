@@ -63,6 +63,7 @@ import com.studyguard.app.ui.theme.InkSoft
 import com.studyguard.app.ui.theme.Line
 import com.studyguard.app.ui.theme.Mint
 import com.studyguard.app.ui.theme.Sand
+import kotlinx.coroutines.launch
 
 @Composable
 fun OverlayQuizScreen(
@@ -146,6 +147,7 @@ private fun QuizOverlayContent(
     onGoLearn: () -> Unit
 ) {
     val bank = AppGraph.questionBank
+    val scope = androidx.compose.runtime.rememberCoroutineScope()
     var questions by remember { mutableStateOf(payload.questions) }
     var index by remember { mutableStateOf(0) }
     var selected by remember { mutableStateOf<Int?>(null) }
@@ -195,7 +197,14 @@ private fun QuizOverlayContent(
             selected = selected,
             onSelect = { chosen ->
                 selected = chosen
-                if (chosen == question.answer) correctCount += 1
+                if (chosen == question.answer) {
+                    correctCount += 1
+                    // 答对：从错题本移除（标记已掌握）
+                    scope.launch { AppGraph.repository.removeWrongQuestion(question.id) }
+                } else {
+                    // 答错：记录到错题本（云端）
+                    scope.launch { AppGraph.repository.recordWrongQuestion(question.id, question.subject, question.stem) }
+                }
             }
         )
         if (selected != null) {

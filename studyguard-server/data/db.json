@@ -1,0 +1,45 @@
+{
+  "users": [
+    {
+      "username": "testuser",
+      "displayName": "测试家长",
+      "passwordHash": "4bf79fcc197a35bdbab66712e9daa49de041da7bde42f7446094b8d97f337d44",
+      "salt": "90d1d5f6d0663b6d04b019be8ccdeeaa",
+      "createdAt": 1794754690508
+    }
+  ],
+  "profiles": {
+    "testuser": {
+      "childName": "小明",
+      "province": "广东省",
+      "city": "深圳市",
+      "grade": 3,
+      "updatedAt": 1794754691750
+    }
+  },
+  "settings": {
+    "testuser": {
+      "dailyLimitMinutes": 60,
+      "sessionLimitMinutes": 20,
+      "subjects": [
+        "数学",
+        "语文"
+      ],
+      "updatedAt": 1794754692373
+    }
+  },
+  "tokens": {
+    "ea95c927c625e30be2a9db17b8eb690f10acd14ab5ea4ce5387179e015cb5489": {
+      "username": "testuser",
+      "expiresAt": 1797346690509
+    },
+    "915b268e5ee8dce59df6d18e578d7dbe3aaf35e4066f76681d3e34b5e3a5a215": {
+      "username": "testuser",
+      "expiresAt": 1797346691131
+    }
+  },
+  "wrongQuestions": {
+    "testuser": []
+  },
+  "studyRecords": {}
+}
