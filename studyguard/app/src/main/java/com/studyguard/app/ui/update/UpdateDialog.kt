@@ -1,10 +1,9 @@
 package com.studyguard.app.ui.update
 
-import android.app.DownloadManager
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
-import android.os.Environment
+import android.widget.Toast
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -65,6 +64,12 @@ fun UpdateDialog(
                         color = MaterialTheme.colorScheme.error
                     )
                 }
+                Spacer(modifier = Modifier.height(10.dp))
+                Text(
+                    text = "点击「立即更新」将在浏览器中下载新版本，下载完成后点击安装即可。",
+                    fontSize = 12.sp,
+                    color = InkSoft
+                )
             }
         },
         confirmButton = {
@@ -89,27 +94,12 @@ fun UpdateDialog(
 
 private fun downloadApk(context: Context, url: String) {
     runCatching {
-        val request = DownloadManager.Request(Uri.parse(url)).apply {
-            setTitle("学伴守护更新")
-            setDescription("正在下载新版本...")
-            setMimeType("application/vnd.android.package-archive")
-            setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED)
-            setDestinationInExternalPublicDir(
-                Environment.DIRECTORY_DOWNLOADS,
-                "studyguard-latest.apk"
-            )
-            setAllowedOverMetered(true)
-            setAllowedOverRoaming(true)
+        val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url)).apply {
+            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
         }
-        val manager = context.getSystemService(Context.DOWNLOAD_SERVICE) as DownloadManager
-        manager.enqueue(request)
+        context.startActivity(intent)
+        Toast.makeText(context, "正在浏览器中下载新版本...", Toast.LENGTH_LONG).show()
     }.onFailure {
-        // DownloadManager 不可用时用浏览器打开
-        runCatching {
-            val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url)).apply {
-                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-            }
-            context.startActivity(intent)
-        }
+        Toast.makeText(context, "无法打开下载链接，请手动访问 $url", Toast.LENGTH_LONG).show()
     }
 }
