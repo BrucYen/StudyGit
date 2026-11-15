@@ -129,7 +129,7 @@ fun OverlayQuizScreen(
             ) {
                 Column(modifier = Modifier.padding(22.dp)) {
                     when (payload.mode) {
-                        OverlayMode.QUIZ -> QuizOverlayContent(payload, onQuizPassed)
+                        OverlayMode.QUIZ -> QuizOverlayContent(payload, onQuizPassed, onParentUnlock, onGoLearn)
                         OverlayMode.DAILY_LIMIT -> DailyLimitContent(payload, onGoLearn, onParentUnlock)
                     }
                 }
@@ -139,16 +139,24 @@ fun OverlayQuizScreen(
 }
 
 @Composable
-private fun QuizOverlayContent(payload: OverlayPayload, onQuizPassed: () -> Unit) {
+private fun QuizOverlayContent(
+    payload: OverlayPayload,
+    onQuizPassed: () -> Unit,
+    onParentUnlock: () -> Unit,
+    onGoLearn: () -> Unit
+) {
     val bank = AppGraph.questionBank
     var questions by remember { mutableStateOf(payload.questions) }
     var index by remember { mutableStateOf(0) }
     var selected by remember { mutableStateOf<Int?>(null) }
     var correctCount by remember { mutableStateOf(0) }
     var finished by remember { mutableStateOf(false) }
+    var retries by remember { mutableStateOf(0) }
 
     val required = bank.requiredCorrect(questions.size.coerceAtLeast(1))
     val passed = correctCount >= required
+    val retriesLeft = payload.settings.maxQuizRetries - retries
+    val locked = !passed && retriesLeft <= 0
 
     if (!finished) {
         QuizProgress(current = index, total = questions.size)
@@ -166,6 +174,14 @@ private fun QuizOverlayContent(payload: OverlayPayload, onQuizPassed: () -> Unit
                 style = MaterialTheme.typography.labelMedium,
                 color = InkSoft
             )
+            Spacer(Modifier.weight(1f))
+            if (retries > 0) {
+                Text(
+                    "剩余重试 $retriesLeft 次",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = if (retriesLeft <= 1) Danger else InkSoft
+                )
+            }
         }
         Spacer(Modifier.height(12.dp))
         Text(
@@ -215,71 +231,134 @@ private fun QuizOverlayContent(payload: OverlayPayload, onQuizPassed: () -> Unit
             style = MaterialTheme.typography.bodySmall,
             color = InkSoft
         )
-    } else {
+    } else if (passed) {
         Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth()) {
             RoundedIcon(
-                icon = if (passed) Icons.Filled.CheckCircle else Icons.Filled.School,
-                tint = if (passed) Emerald else Danger,
-                background = if (passed) Mint else Sand,
+                icon = Icons.Filled.CheckCircle,
+                tint = Emerald,
+                background = Mint,
                 size = 68,
                 iconSize = 34
             )
             Spacer(Modifier.height(14.dp))
+            Text("考试通过", style = MaterialTheme.typography.headlineSmall, color = Ink)
+            Spacer(Modifier.height(6.dp))
             Text(
-                if (passed) "考试通过" else "还差一点点",
-                style = MaterialTheme.typography.headlineSmall,
-                color = Ink
+                "答对 $correctCount / ${questions.size} 题",
+                style = MaterialTheme.typography.bodyMedium,
+                color = InkSoft
             )
+            Spacer(Modifier.height(18.dp))
+            Text(
+                "已获得 ${payload.settings.rewardMinutes} 分钟使用时间",
+                style = MaterialTheme.typography.titleMedium,
+                color = Emerald
+            )
+            Spacer(Modifier.height(16.dp))
+            Button(
+                onClick = onQuizPassed,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(50.dp),
+                shape = RoundedCornerShape(16.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = Emerald)
+            ) {
+                Text("继续使用", style = MaterialTheme.typography.titleMedium)
+            }
+        }
+    } else if (locked) {
+        Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth()) {
+            RoundedIcon(
+                icon = Icons.Filled.Lock,
+                tint = Danger,
+                background = Sand,
+                size = 68,
+                iconSize = 34
+            )
+            Spacer(Modifier.height(14.dp))
+            Text("重试次数已用完", style = MaterialTheme.typography.headlineSmall, color = Ink)
+            Spacer(Modifier.height(6.dp))
+            Text(
+                "本次答对 $correctCount / ${questions.size} 题，需要 $required 题",
+                style = MaterialTheme.typography.bodyMedium,
+                color = InkSoft
+            )
+            Spacer(Modifier.height(10.dp))
+            Text(
+                "请去学习乐园巩固一下，或请家长解锁延长使用时间。",
+                style = MaterialTheme.typography.bodySmall,
+                color = InkSoft
+            )
+            Spacer(Modifier.height(18.dp))
+            Button(
+                onClick = onGoLearn,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(50.dp),
+                shape = RoundedCornerShape(16.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = Emerald)
+            ) {
+                Icon(Icons.Filled.School, contentDescription = null, modifier = Modifier.size(18.dp))
+                Spacer(Modifier.width(8.dp))
+                Text("去学习乐园", style = MaterialTheme.typography.titleMedium)
+            }
+            Spacer(Modifier.height(10.dp))
+            OutlinedButton(
+                onClick = onParentUnlock,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(50.dp),
+                shape = RoundedCornerShape(16.dp),
+                border = androidx.compose.foundation.BorderStroke(1.dp, Line)
+            ) {
+                Icon(Icons.Filled.Lock, contentDescription = null, tint = InkSoft, modifier = Modifier.size(18.dp))
+                Spacer(Modifier.width(8.dp))
+                Text("家长解锁", style = MaterialTheme.typography.titleMedium, color = Ink)
+            }
+        }
+    } else {
+        Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth()) {
+            RoundedIcon(
+                icon = Icons.Filled.School,
+                tint = Amber,
+                background = Sand,
+                size = 68,
+                iconSize = 34
+            )
+            Spacer(Modifier.height(14.dp))
+            Text("还差一点点", style = MaterialTheme.typography.headlineSmall, color = Ink)
             Spacer(Modifier.height(6.dp))
             Text(
                 "答对 $correctCount / ${questions.size} 题，需要 $required 题",
                 style = MaterialTheme.typography.bodyMedium,
                 color = InkSoft
             )
+            Spacer(Modifier.height(6.dp))
+            Text(
+                "还可以重试 $retriesLeft 次，把错题看一遍再来",
+                style = MaterialTheme.typography.bodySmall,
+                color = InkSoft
+            )
             Spacer(Modifier.height(18.dp))
-            if (passed) {
-                Text(
-                    "已获得 ${payload.settings.rewardMinutes} 分钟使用时间",
-                    style = MaterialTheme.typography.titleMedium,
-                    color = Emerald
-                )
-                Spacer(Modifier.height(16.dp))
-                Button(
-                    onClick = onQuizPassed,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(50.dp),
-                    shape = RoundedCornerShape(16.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = Emerald)
-                ) {
-                    Text("继续使用", style = MaterialTheme.typography.titleMedium)
-                }
-            } else {
-                Text(
-                    "把错题看一遍，再来一组试试",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = InkSoft
-                )
-                Spacer(Modifier.height(16.dp))
-                Button(
-                    onClick = {
-                        val newQuestions = bank.pickExamQuestions(
-                            payload.grade, payload.subjects, payload.questionCount
-                        )
-                        questions = newQuestions.ifEmpty { payload.questions }
-                        index = 0
-                        selected = null
-                        correctCount = 0
-                        finished = false
-                    },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(50.dp),
-                    shape = RoundedCornerShape(16.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = Emerald)
-                ) {
-                    Text("再来一组", style = MaterialTheme.typography.titleMedium)
-                }
+            Button(
+                onClick = {
+                    val newQuestions = bank.pickExamQuestions(
+                        payload.grade, payload.subjects, payload.questionCount
+                    )
+                    questions = newQuestions.ifEmpty { payload.questions }
+                    index = 0
+                    selected = null
+                    correctCount = 0
+                    finished = false
+                    retries += 1
+                },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(50.dp),
+                shape = RoundedCornerShape(16.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = Emerald)
+            ) {
+                Text("再来一组", style = MaterialTheme.typography.titleMedium)
             }
         }
     }

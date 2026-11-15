@@ -29,6 +29,7 @@ data class MonitorSettings(
     val sessionLimitMinutes: Int = 15,
     val quizQuestionCount: Int = 3,
     val rewardMinutes: Int = 10,
+    val maxQuizRetries: Int = 2,
     val subjects: Set<String> = Constants.SUBJECTS.toSet(),
     val pinSalt: String = "",
     val pinHash: String = "",

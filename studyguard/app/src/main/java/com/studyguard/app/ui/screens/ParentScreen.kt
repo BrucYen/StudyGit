@@ -214,6 +214,24 @@ fun ParentScreen(
                 canDecrease = settings.quizQuestionCount > 1,
                 canIncrease = settings.quizQuestionCount < 5
             )
+            Spacer(Modifier.height(6.dp))
+            StepperRow(
+                title = "未通过最大重试次数",
+                subtitle = "用完后只能家长解锁或去学习",
+                valueText = "${settings.maxQuizRetries} 次",
+                onDecrease = {
+                    vm.updateSettings {
+                        it.copy(maxQuizRetries = (it.maxQuizRetries - 1).coerceAtLeast(0))
+                    }
+                },
+                onIncrease = {
+                    vm.updateSettings {
+                        it.copy(maxQuizRetries = (it.maxQuizRetries + 1).coerceAtMost(5))
+                    }
+                },
+                canDecrease = settings.maxQuizRetries > 0,
+                canIncrease = settings.maxQuizRetries < 5
+            )
         }
 
         Spacer(Modifier.height(14.dp))
