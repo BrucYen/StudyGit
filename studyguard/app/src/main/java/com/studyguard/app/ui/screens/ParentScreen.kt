@@ -32,6 +32,7 @@ import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -60,6 +61,7 @@ import com.studyguard.app.ui.theme.InkSoft
 import com.studyguard.app.ui.theme.Line
 import com.studyguard.app.ui.theme.Mint
 import com.studyguard.app.ui.theme.Sand
+import com.studyguard.app.ui.update.UpdateDialog
 import com.studyguard.app.vm.AppViewModel
 
 @Composable
@@ -97,6 +99,14 @@ fun ParentScreen(
     }
 
     var showPinDialog by remember { mutableStateOf(false) }
+    val updateInfo by vm.updateInfo.collectAsState()
+    val updateChecking by vm.updateChecking.collectAsState()
+    val context = androidx.compose.ui.platform.LocalContext.current
+    val currentVersion = remember {
+        runCatching {
+            context.packageManager.getPackageInfo(context.packageName, 0).versionName
+        }.getOrDefault("1.0.0")
+    }
 
     Column(
         modifier = Modifier
@@ -352,10 +362,28 @@ fun ParentScreen(
         Spacer(Modifier.height(14.dp))
         SectionCard(title = "关于学伴守护") {
             Text(
-                "版本 1.0.0 · 数据仅保存在本机\n考试题库按小学低/中/高年级与中学分段，数学、语文、英语、科学共 96 道。",
+                "当前版本 v$currentVersion · 数据云端同步\n考试题库按小学低/中/高年级与中学分段，数学、语文、英语、科学。",
                 style = MaterialTheme.typography.bodySmall,
                 color = InkSoft
             )
+            Spacer(Modifier.height(12.dp))
+            OutlinedButton(
+                onClick = { vm.checkUpdate() },
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(12.dp)
+            ) {
+                if (updateChecking) {
+                    Text("检查中...")
+                } else {
+                    androidx.compose.material3.Icon(
+                        Icons.Default.Campaign,
+                        contentDescription = null,
+                        modifier = Modifier.size(16.dp)
+                    )
+                    Spacer(Modifier.width(6.dp))
+                    Text("检查更新")
+                }
+            }
         }
 
         Spacer(Modifier.height(16.dp))
@@ -376,6 +404,13 @@ fun ParentScreen(
         ChangePinDialog(
             onDismiss = { showPinDialog = false },
             onChange = { pin, onResult -> vm.changePin(pin, onResult) }
+        )
+    }
+
+    if (updateInfo != null) {
+        UpdateDialog(
+            info = updateInfo!!,
+            onDismiss = { vm.updateInfo.value = null }
         )
     }
 }

@@ -15,6 +15,8 @@ import com.studyguard.app.service.OverlayQuizController
 import com.studyguard.app.usage.InstalledApp
 import com.studyguard.app.usage.UsageMonitor
 import com.studyguard.app.usage.UsageSummary
+import com.studyguard.app.update.UpdateChecker
+import com.studyguard.app.update.VersionInfo
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -35,6 +37,8 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     val installedApps = MutableStateFlow<List<InstalledApp>>(emptyList())
     val error = MutableStateFlow<String?>(null)
     val busy = MutableStateFlow(false)
+    val updateInfo = MutableStateFlow<VersionInfo?>(null)
+    val updateChecking = MutableStateFlow(false)
 
     init {
         refreshInstalledApps()
@@ -164,4 +168,19 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     fun currentProfile(): ChildProfile? = state.value?.profile()
 
     fun currentTargets(): Set<String> = currentSettings().targetPackages.ifEmpty { Constants.DEFAULT_TARGETS }
+
+    fun checkUpdate() {
+        viewModelScope.launch {
+            updateChecking.value = true
+            val info = UpdateChecker.checkUpdate(getApplication())
+            updateChecking.value = false
+            if (info != null) {
+                updateInfo.value = info
+            } else {
+                error.value = "已是最新版本"
+                kotlinx.coroutines.delay(2000)
+                error.value = null
+            }
+        }
+    }
 }
