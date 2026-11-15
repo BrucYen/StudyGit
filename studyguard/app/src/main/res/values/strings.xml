@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">学伴守护</string>
+    <string name="notification_channel">屏幕使用守护</string>
+    <string name="notification_title">学伴守护正在运行</string>
+    <string name="notification_text">正在监测使用时长，超时会弹出学习考试</string>
+</resources>
