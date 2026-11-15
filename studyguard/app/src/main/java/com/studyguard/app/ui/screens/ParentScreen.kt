@@ -101,6 +101,7 @@ fun ParentScreen(
     var showPinDialog by remember { mutableStateOf(false) }
     val updateInfo by vm.updateInfo.collectAsState()
     val updateChecking by vm.updateChecking.collectAsState()
+    val error by vm.error.collectAsState()
     val context = androidx.compose.ui.platform.LocalContext.current
     val currentVersion = remember {
         runCatching {
@@ -126,6 +127,10 @@ fun ParentScreen(
                 )
             }
             RoundedIcon(icon = Icons.Filled.Lock, size = 40, iconSize = 20)
+        }
+
+        if (!error.isNullOrBlank()) {
+            ErrorText(error, modifier = Modifier.padding(top = 8.dp))
         }
 
         Spacer(Modifier.height(16.dp))
