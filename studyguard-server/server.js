@@ -7,13 +7,25 @@ const { hashPassword, verifyPassword, hashPin } = require('./auth')
 const app = express()
 const PORT = process.env.PORT || 3000
 
-// 最新版本信息（更新 App 时改这里）
-const LATEST_VERSION = {
-  versionCode: 3,
-  versionName: '1.2.0',
-  downloadUrl: 'https://wytek.cloud/apk/studyguard-latest.apk',
-  releaseNotes: '1. 新增云端数据同步（账号/设置/错题本/学习记录）\n2. 新增错题本功能：答错自动记录，答对自动移除\n3. 考试优先出错题，针对性巩固薄弱知识点\n4. 新增在线更新和题库同步',
-  forceUpdate: false
+// 管理员上传鉴权 Token（部署时可通过环境变量覆盖）
+const ADMIN_TOKEN = process.env.ADMIN_TOKEN || 'studyguard-admin-2024'
+
+const DATA_DIR = path.join(__dirname, 'data')
+const APK_DIR = path.join(__dirname, 'public', 'apk')
+if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true })
+if (!fs.existsSync(APK_DIR)) fs.mkdirSync(APK_DIR, { recursive: true })
+
+// 版本信息从文件读取（改版本不用重启服务）
+function getLatestVersion() {
+  try {
+    return JSON.parse(fs.readFileSync(path.join(DATA_DIR, 'version.json'), 'utf8'))
+  } catch (e) {
+    return {
+      versionCode: 1, versionName: '1.0.0',
+      downloadUrl: 'https://wytek.cloud/apk/studyguard-latest.apk',
+      releaseNotes: '', forceUpdate: false
+    }
+  }
 }
 
 app.use(express.json())
@@ -33,7 +45,53 @@ app.get('/health', (req, res) => res.json({ ok: true }))
 
 app.get('/api/version', (req, res) => {
   const clientVersion = parseInt(req.query.versionCode) || 0
-  res.json({ ...LATEST_VERSION, hasUpdate: clientVersion < LATEST_VERSION.versionCode })
+  const latest = getLatestVersion()
+  res.json({ ...latest, hasUpdate: clientVersion < latest.versionCode })
+})
+
+// ---- 管理员上传接口（用于我直接通过 HTTP 更新 APK/题库/版本）----
+function adminAuth(req, res, next) {
+  const token = req.headers['x-admin-token']
+  if (token !== ADMIN_TOKEN) return res.status(403).json({ error: '管理员鉴权失败' })
+  next()
+}
+
+// 上传 APK（raw body）
+app.post('/api/admin/upload/apk', adminAuth, express.raw({ type: 'application/octet-stream', limit: '100mb' }), (req, res) => {
+  try {
+    const apkPath = path.join(APK_DIR, 'studyguard-latest.apk')
+    fs.writeFileSync(apkPath, req.body)
+    res.json({ ok: true, size: req.body.length, message: `APK 已更新 (${(req.body.length/1024/1024).toFixed(2)} MB)` })
+  } catch (e) {
+    res.status(500).json({ error: e.message })
+  }
+})
+
+// 上传题库（raw body，必须是合法 JSON）
+app.post('/api/admin/upload/questions', adminAuth, express.raw({ type: 'application/octet-stream', limit: '10mb' }), (req, res) => {
+  try {
+    const text = req.body.toString('utf8')
+    const parsed = JSON.parse(text) // 验证 JSON 合法性
+    if (!parsed.questions || !Array.isArray(parsed.questions)) {
+      return res.status(400).json({ error: '题库格式错误，缺少 questions 数组' })
+    }
+    fs.writeFileSync(path.join(DATA_DIR, 'questions.json'), text)
+    res.json({ ok: true, count: parsed.questions.length })
+  } catch (e) {
+    res.status(400).json({ error: '题库 JSON 解析失败: ' + e.message })
+  }
+})
+
+// 更新版本信息（JSON body）
+app.post('/api/admin/version', adminAuth, (req, res) => {
+  try {
+    const current = getLatestVersion()
+    const updated = { ...current, ...req.body }
+    fs.writeFileSync(path.join(DATA_DIR, 'version.json'), JSON.stringify(updated, null, 2))
+    res.json({ ok: true, version: updated })
+  } catch (e) {
+    res.status(500).json({ error: e.message })
+  }
 })
 
 app.get('/api/questions', (req, res) => {
