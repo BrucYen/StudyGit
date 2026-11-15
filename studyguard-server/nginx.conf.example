@@ -1,16 +1,36 @@
-# Nginx 反向代理配置（加到现有 server 块里）
-# 因为 80 端口已有其他应用，用路径前缀 /studyguard/ 转发到后端 3000 端口
+# 学伴守护 Nginx 配置（域名 wytek.cloud）
 #
-# 在现有 nginx 配置的 server { } 块内加入：
+# 1. 把本文件放到 /etc/nginx/sites-available/studyguard.conf
+# 2. 创建软链：sudo ln -s /etc/nginx/sites-available/studyguard.conf /etc/nginx/sites-enabled/
+# 3. 申请 SSL 证书（如果还没有）：
+#      sudo apt install -y certbot python3-certbot-nginx
+#      sudo certbot --nginx -d wytek.cloud
+# 4. 测试并重载：sudo nginx -t && sudo systemctl reload nginx
 
-location /studyguard/ {
-    proxy_pass http://127.0.0.1:3000/;
-    proxy_set_header Host $host;
-    proxy_set_header X-Real-IP $remote_addr;
-    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+# HTTP 80 → 强制跳转 HTTPS
+server {
+    listen 80;
+    server_name wytek.cloud;
+    return 301 https://$host$request_uri;
 }
 
-# 配置后：
-#   版本接口：http://你的服务器IP/studyguard/api/version
-#   题库接口：http://你的服务器IP/studyguard/api/questions
-#   APK下载：  http://你的服务器IP/studyguard/apk/studyguard-latest.apk
+# HTTPS 443 → 反代到后端 3000
+server {
+    listen 443 ssl;
+    server_name wytek.cloud;
+
+    # SSL 证书（certbot 自动签发的路径）
+    ssl_certificate     /etc/letsencrypt/live/wytek.cloud/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/wytek.cloud/privkey.pem;
+    ssl_protocols TLSv1.2 TLSv1.3;
+
+    client_max_body_size 50m;  # APK 上传/下载较大
+
+    location / {
+        proxy_pass http://127.0.0.1:3000;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+}
