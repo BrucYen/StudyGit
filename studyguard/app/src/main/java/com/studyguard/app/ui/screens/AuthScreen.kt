@@ -245,6 +245,19 @@ fun AuthScreen(vm: AppViewModel, modifier: Modifier = Modifier) {
                         }
                     }
 
+                    if (!isRegister) {
+                        Spacer(Modifier.height(12.dp))
+                        Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+                            Text(
+                                "还没有账号？点击这里注册",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = Emerald,
+                                fontWeight = FontWeight.Medium,
+                                modifier = Modifier.clickable { isRegister = true }
+                            )
+                        }
+                    }
+
                     Spacer(Modifier.height(14.dp))
                     Text(
                         "账号与孩子档案仅保存在本机，不会上传服务器。",

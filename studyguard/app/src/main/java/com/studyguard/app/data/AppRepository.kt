@@ -8,11 +8,14 @@ import androidx.datastore.preferences.preferencesDataStore
 import com.studyguard.app.core.Constants
 import com.studyguard.app.core.Crypto
 import com.studyguard.app.core.TimeUtils
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json
 
@@ -25,6 +28,43 @@ class AppRepository(private val context: Context) {
         encodeDefaults = true
     }
     private val stateKey = stringPreferencesKey("app_state")
+    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+
+    init {
+        ensureDefaultAccount()
+    }
+
+    private fun ensureDefaultAccount() {
+        scope.launch {
+            val snapshot = state.first()
+            if (snapshot.users.isNotEmpty()) return@launch
+            val pinSalt = Crypto.newSalt()
+            val settings = MonitorSettings(
+                pinSalt = pinSalt,
+                pinHash = Crypto.hash(Constants.DEFAULT_PARENT_PIN, pinSalt)
+            )
+            update { current ->
+                if (current.users.isNotEmpty()) return@update current
+                val salt = Crypto.newSalt()
+                val account = UserAccount(
+                    username = DEFAULT_USERNAME,
+                    displayName = DEFAULT_DISPLAY_NAME,
+                    salt = salt,
+                    hash = Crypto.hash(DEFAULT_PASSWORD, salt)
+                )
+                current.copy(
+                    users = listOf(account),
+                    settings = current.settings + (DEFAULT_USERNAME to settings)
+                )
+            }
+        }
+    }
+
+    companion object {
+        const val DEFAULT_USERNAME = "parent"
+        const val DEFAULT_PASSWORD = "123456"
+        const val DEFAULT_DISPLAY_NAME = "默认家长"
+    }
 
     val state: Flow<AppState> = context.dataStore.data
         .catch { emit(emptyPreferences()) }
