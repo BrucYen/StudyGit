@@ -30,6 +30,10 @@ class AppRepository(private val context: Context) {
     private val stateKey = stringPreferencesKey("app_state")
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
+    val state: Flow<AppState> = context.dataStore.data
+        .catch { emit(emptyPreferences()) }
+        .map { prefs -> decode(prefs[stateKey]) }
+
     init {
         ensureDefaultAccount()
     }
@@ -65,10 +69,6 @@ class AppRepository(private val context: Context) {
         const val DEFAULT_PASSWORD = "123456"
         const val DEFAULT_DISPLAY_NAME = "默认家长"
     }
-
-    val state: Flow<AppState> = context.dataStore.data
-        .catch { emit(emptyPreferences()) }
-        .map { prefs -> decode(prefs[stateKey]) }
 
     private fun decode(raw: String?): AppState {
         if (raw.isNullOrBlank()) return AppState()
