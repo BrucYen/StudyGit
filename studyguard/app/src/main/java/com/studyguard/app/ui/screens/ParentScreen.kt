@@ -101,6 +101,7 @@ fun ParentScreen(
     var showPinDialog by remember { mutableStateOf(false) }
     val updateInfo by vm.updateInfo.collectAsState()
     val updateChecking by vm.updateChecking.collectAsState()
+    val updateResultMessage by vm.updateResultMessage.collectAsState()
     val error by vm.error.collectAsState()
     val context = androidx.compose.ui.platform.LocalContext.current
     val currentVersion = remember {
@@ -416,6 +417,20 @@ fun ParentScreen(
         UpdateDialog(
             info = updateInfo!!,
             onDismiss = { vm.updateInfo.value = null }
+        )
+    }
+
+    if (!updateResultMessage.isNullOrBlank()) {
+        val msg = updateResultMessage
+        AlertDialog(
+            onDismissRequest = { vm.updateResultMessage.value = null },
+            title = { Text("版本检查") },
+            text = { Text(msg!!) },
+            confirmButton = {
+                TextButton(onClick = { vm.updateResultMessage.value = null }) {
+                    Text("知道了")
+                }
+            }
         )
     }
 }

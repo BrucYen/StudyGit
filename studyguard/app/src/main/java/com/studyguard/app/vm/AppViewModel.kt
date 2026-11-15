@@ -39,6 +39,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     val busy = MutableStateFlow(false)
     val updateInfo = MutableStateFlow<VersionInfo?>(null)
     val updateChecking = MutableStateFlow(false)
+    val updateResultMessage = MutableStateFlow<String?>(null)
 
     init {
         refreshInstalledApps()
@@ -177,9 +178,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
             if (info != null) {
                 updateInfo.value = info
             } else {
-                error.value = "已是最新版本"
-                kotlinx.coroutines.delay(2000)
-                error.value = null
+                updateResultMessage.value = "当前已是最新版本，无需更新"
             }
         }
     }
