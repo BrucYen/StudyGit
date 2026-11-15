@@ -1,0 +1,12 @@
+{
+  "name": "studyguard-server",
+  "version": "1.0.0",
+  "description": "学伴守护后端：版本检查 + 题库下发 + APK 下载",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.21.0"
+  }
+}
