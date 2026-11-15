@@ -47,6 +47,9 @@ import com.studyguard.app.ui.theme.Emerald
 import com.studyguard.app.ui.theme.InkSoft
 import com.studyguard.app.ui.theme.Mint
 import com.studyguard.app.ui.theme.Paper
+import com.studyguard.app.ui.update.UpdateDialog
+import com.studyguard.app.update.UpdateChecker
+import com.studyguard.app.update.VersionInfo
 import com.studyguard.app.usage.InstalledApp
 import com.studyguard.app.usage.UsageMonitor
 import com.studyguard.app.usage.UsageSummary
@@ -108,6 +111,13 @@ private fun MainScaffold(
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
     var resumeTick by remember { mutableStateOf(0) }
+    var updateInfo by remember { mutableStateOf<VersionInfo?>(null) }
+
+    // 启动时检查更新
+    LaunchedEffect(Unit) {
+        val info = UpdateChecker.checkUpdate(context)
+        if (info != null) updateInfo = info
+    }
 
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
@@ -199,6 +209,10 @@ private fun MainScaffold(
                     onNavigateTab = { selectedTab = it }
                 )
             }
+        }
+
+        updateInfo?.let { info ->
+            UpdateDialog(info = info) { updateInfo = null }
         }
     }
 }

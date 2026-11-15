@@ -7,10 +7,10 @@ const PORT = process.env.PORT || 3000
 
 // 最新版本信息（更新 App 时改这里）
 const LATEST_VERSION = {
-  versionCode: 1,
-  versionName: '1.0.0',
+  versionCode: 2,
+  versionName: '1.1.0',
   downloadUrl: 'https://wytek.cloud/apk/studyguard-latest.apk',
-  releaseNotes: '初始版本：使用时长监测 + 弹窗考试 + 学习模块',
+  releaseNotes: '1. 新增在线更新功能，可在 App 内检测并下载新版本\n2. 优化弹窗考试体验\n3. 修复已知问题',
   forceUpdate: false
 }
 
