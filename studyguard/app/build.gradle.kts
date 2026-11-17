@@ -11,6 +11,7 @@ val keystorePropsFile = rootProject.file("keystore.properties")
 val keystoreProps = Properties().apply {
     if (keystorePropsFile.exists()) keystorePropsFile.inputStream().use { load(it) }
 }
+val debugKeystoreFile = rootProject.file("keystore/debug.keystore")
 
 android {
     namespace = "com.studyguard.app"
@@ -25,6 +26,14 @@ android {
     }
 
     signingConfigs {
+        if (debugKeystoreFile.exists()) {
+            create("debugFixed") {
+                storeFile = debugKeystoreFile
+                storePassword = "android"
+                keyAlias = "androiddebugkey"
+                keyPassword = "android"
+            }
+        }
         if (keystorePropsFile.exists()) {
             create("release") {
                 storeFile = rootProject.file(keystoreProps.getProperty("storeFile"))
@@ -36,6 +45,13 @@ android {
     }
 
     buildTypes {
+        debug {
+            signingConfig = if (debugKeystoreFile.exists()) {
+                signingConfigs.getByName("debugFixed")
+            } else {
+                signingConfigs.getByName("debug")
+            }
+        }
         release {
             isMinifyEnabled = false
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
